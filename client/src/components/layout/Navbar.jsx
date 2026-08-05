@@ -1,28 +1,77 @@
+import { Link } from "react-router-dom";
+import { FaChartLine } from "react-icons/fa";
+
 function Navbar() {
   return (
-    <nav className="w-full bg-slate-900 text-white shadow-md">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-8 py-4">
+    <header className="fixed top-0 left-0 w-full z-50 bg-[var(--background)]/90 backdrop-blur-lg border-b border-[var(--border)]">
+      <div className="max-w-7xl mx-auto h-20 px-6 flex items-center justify-between">
 
         {/* Logo */}
-        <h1 className="text-2xl font-bold text-blue-500">
-          FinPilot AI
-        </h1>
+        <Link
+          to="/"
+          className="flex items-center gap-3"
+        >
+          <div className="h-11 w-11 rounded-xl bg-[var(--primary)] flex items-center justify-center shadow-lg">
+            <FaChartLine className="text-white text-lg" />
+          </div>
 
-        {/* Navigation Links */}
-        <ul className="flex gap-8 text-lg">
-          <li className="cursor-pointer hover:text-blue-400">Features</li>
-          <li className="cursor-pointer hover:text-blue-400">Analytics</li>
-          <li className="cursor-pointer hover:text-blue-400">AI Advisor</li>
-          <li className="cursor-pointer hover:text-blue-400">About</li>
-        </ul>
+          <div>
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">
+              FinPilot AI
+            </h1>
 
-        {/* Login Button */}
-        <button className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg font-semibold">
-          Login
-        </button>
+            <p className="text-xs text-[var(--text-secondary)]">
+              Personal Finance Manager
+            </p>
+          </div>
+        </Link>
 
+        {/* Navigation */}
+        <nav className="hidden lg:flex items-center gap-10">
+
+          <a
+            href="#features"
+            className="text-[var(--text-secondary)] hover:text-[var(--primary)] transition"
+          >
+            Features
+          </a>
+
+          <a
+            href="#how"
+            className="text-[var(--text-secondary)] hover:text-[var(--primary)] transition"
+          >
+            How It Works
+          </a>
+
+          <a
+            href="#testimonials"
+            className="text-[var(--text-secondary)] hover:text-[var(--primary)] transition"
+          >
+            Testimonials
+          </a>
+
+        </nav>
+
+        {/* Actions */}
+        <div className="flex items-center gap-4">
+
+          <Link
+            to="/login"
+            className="text-[var(--text-secondary)] hover:text-white transition"
+          >
+            Login
+          </Link>
+
+          <Link
+            to="/register"
+            className="px-5 py-2.5 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] transition text-white font-semibold"
+          >
+            Get Started
+          </Link>
+
+        </div>
       </div>
-    </nav>
+    </header>
   );
 }
 

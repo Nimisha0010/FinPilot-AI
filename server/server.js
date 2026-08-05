@@ -16,9 +16,10 @@ const connectDB = require("./config/db");
 // =====================
 const authRoutes = require("./routes/authRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
-const dashboardRoutes = require("./routes/dashboardRoutes");
 const incomeRoutes = require("./routes/incomeRoutes");
 const budgetRoutes = require("./routes/budgetRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 const app = express();
 
@@ -38,9 +39,10 @@ app.use(express.json());
 // =====================
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
-app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/income", incomeRoutes);
 app.use("/api/budget", budgetRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/ai", aiRoutes);
 
 // =====================
 // Health Check Route
@@ -53,12 +55,24 @@ app.get("/", (req, res) => {
 });
 
 // =====================
-// Handle Unknown Routes
+// 404 Route Handler
 // =====================
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: "Route Not Found",
+  });
+});
+
+// =====================
+// Global Error Handler
+// =====================
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
   });
 });
 

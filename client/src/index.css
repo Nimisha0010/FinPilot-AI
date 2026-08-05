@@ -1,1 +1,53 @@
 @import "tailwindcss";
+
+/* =========================
+   FinPilot AI Design System
+========================= */
+
+:root {
+
+  /* Backgrounds */
+  --background: #121417;
+  --surface: #1A1D21;
+  --card: #23272F;
+
+  /* Borders */
+  --border: #343A46;
+
+  /* Typography */
+  --text-primary: #F5F7FA;
+  --text-secondary: #A8B0BD;
+
+  /* Accent */
+  --primary: #4A90E2;
+  --primary-hover: #6AA8F0;
+
+  /* Status */
+  --success: #22C55E;
+  --danger: #EF4444;
+}
+
+/* Reset */
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html{
+  scroll-behavior:smooth;
+}
+
+body{
+
+  background:var(--background);
+
+  color:var(--text-primary);
+
+  font-family:
+      Inter,
+      system-ui,
+      sans-serif;
+
+}

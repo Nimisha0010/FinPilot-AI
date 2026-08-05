@@ -8,13 +8,18 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const connectDB = require("./config/db");
 
+// =====================
 // Import Routes
+// =====================
 const authRoutes = require("./routes/authRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const app = express();
 
-// Connect to MongoDB
+// =====================
+// Connect Database
+// =====================
 connectDB();
 
 // =====================
@@ -24,10 +29,11 @@ app.use(cors());
 app.use(express.json());
 
 // =====================
-// Routes
+// API Routes
 // =====================
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // =====================
 // Test Route

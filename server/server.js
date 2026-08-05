@@ -6,6 +6,9 @@ require("dotenv").config();
 // Force Node.js to use Google's DNS servers
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
+// =====================
+// Database Connection
+// =====================
 const connectDB = require("./config/db");
 
 // =====================
@@ -14,6 +17,8 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const incomeRoutes = require("./routes/incomeRoutes");
+const budgetRoutes = require("./routes/budgetRoutes");
 
 const app = express();
 
@@ -34,12 +39,27 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/income", incomeRoutes);
+app.use("/api/budget", budgetRoutes);
 
 // =====================
-// Test Route
+// Health Check Route
 // =====================
 app.get("/", (req, res) => {
-  res.send("🚀 FinPilot AI Backend Running");
+  res.status(200).json({
+    success: true,
+    message: "🚀 FinPilot AI Backend Running Successfully",
+  });
+});
+
+// =====================
+// Handle Unknown Routes
+// =====================
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route Not Found",
+  });
 });
 
 // =====================

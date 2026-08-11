@@ -1,19 +1,37 @@
 const { GoogleGenAI } = require("@google/genai");
+
 const Expense = require("../models/Expense");
 const Income = require("../models/Income");
 const Budget = require("../models/Budget");
+
+// ================= GEMINI CLIENT =================
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
 // ================= AI INSIGHTS =================
+
 const getInsights = async (req, res) => {
   try {
-    // ================= FETCH USER DATA =================
-    const expenses = await Expense.find({ user: req.user.id });
+    // ================= CHECK AUTH =================
 
-    const incomes = await Income.find({ user: req.user.id });
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Not Authorized",
+      });
+    }
+
+    // ================= FETCH USER DATA =================
+
+    const expenses = await Expense.find({
+      user: req.user.id,
+    });
+
+    const incomes = await Income.find({
+      user: req.user.id,
+    });
 
     const currentDate = new Date();
 
@@ -24,78 +42,162 @@ const getInsights = async (req, res) => {
     });
 
     // ================= CALCULATE SUMMARY =================
+
     const totalIncome = incomes.reduce(
-      (sum, income) => sum + income.amount,
+      (sum, income) => sum + Number(income.amount || 0),
       0
     );
 
     const totalExpenses = expenses.reduce(
-      (sum, expense) => sum + expense.amount,
+      (sum, expense) => sum + Number(expense.amount || 0),
       0
     );
 
-    const remainingBalance = totalIncome - totalExpenses;
+    const remainingBalance =
+      totalIncome - totalExpenses;
 
-    const budgetAmount = budget ? budget.amount : 0;
+    const budgetAmount = budget
+      ? Number(budget.amount || 0)
+      : 0;
 
     const savingsRate =
       totalIncome > 0
-        ? (
-            (remainingBalance / totalIncome) *
-            100
-          ).toFixed(2)
+        ? Number(
+            (
+              (remainingBalance / totalIncome) *
+              100
+            ).toFixed(2)
+          )
         : 0;
 
+    // ================= EXPENSE DATA =================
+
+    const expenseList =
+      expenses.length > 0
+        ? expenses
+            .map(
+              (expense) =>
+                `- ${expense.title || "Expense"}: ₹${Number(
+                  expense.amount || 0
+                )} (${expense.category || "Other"})`
+            )
+            .join("\n")
+        : "No expenses recorded.";
+
     // ================= BUILD PROMPT =================
+
     const prompt = `
 You are FinPilot AI, an expert personal financial advisor.
 
-Analyze the following financial data.
+Analyze the user's financial data and provide practical financial advice.
 
 Financial Summary:
-- Total Income: ₹${totalIncome}
-- Total Expenses: ₹${totalExpenses}
-- Remaining Balance: ₹${remainingBalance}
-- Monthly Budget: ₹${budgetAmount}
-- Savings Rate: ${savingsRate}%
+
+Total Income: ₹${totalIncome}
+Total Expenses: ₹${totalExpenses}
+Remaining Balance: ₹${remainingBalance}
+Monthly Budget: ₹${budgetAmount}
+Savings Rate: ${savingsRate}%
 
 Expense List:
-${expenses
-  .map(
-    (expense) =>
-      `• ${expense.title} - ₹${expense.amount} (${expense.category})`
-  )
-  .join("\n")}
+
+${expenseList}
 
 Instructions:
+
 - Give exactly 5 financial insights.
-- Each insight should be one sentence.
+- Each insight must be one sentence.
 - Keep each insight under 20 words.
-- Each insight must be on a new line.
-- Do NOT number the insights.
-- Do NOT use markdown.
-- Focus on spending habits, budgeting, savings and financial improvements.
+- Put each insight on a separate line.
+- Do not number the insights.
+- Do not use markdown.
+- Focus on spending habits, budgeting, savings, and financial improvements.
+- Make the advice specific to the user's financial data.
 `;
 
     // ================= CALL GEMINI =================
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-    });
 
-    // ================= FORMAT RESPONSE =================
-    const insights = response.text
+    let response;
+
+    try {
+      response = await ai.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+        contents: prompt,
+      });
+    } catch (geminiError) {
+      console.error(
+        "Gemini API Error:",
+        geminiError
+      );
+
+      // ================= RATE LIMIT =================
+
+      if (
+        geminiError?.status === 429 ||
+        geminiError?.code === 429 ||
+        geminiError?.response?.status === 429 ||
+        geminiError?.message?.includes("429") ||
+        geminiError?.message
+          ?.toLowerCase()
+          ?.includes("quota")
+      ) {
+        return res.status(429).json({
+          success: false,
+          message:
+            "Gemini API rate limit or quota reached. Please try again later.",
+        });
+      }
+
+      // ================= OTHER GEMINI ERROR =================
+
+      return res.status(502).json({
+        success: false,
+        message:
+          "Unable to connect to the Gemini AI service.",
+      });
+    }
+
+    // ================= GET TEXT =================
+
+    const generatedText =
+      typeof response?.text === "string"
+        ? response.text
+        : "";
+
+    if (!generatedText.trim()) {
+      return res.status(502).json({
+        success: false,
+        message:
+          "Gemini returned an empty response.",
+      });
+    }
+
+    // ================= FORMAT INSIGHTS =================
+
+    const insights = generatedText
       .split(/\r?\n/)
       .map((line) =>
         line
           .replace(/^\d+\.\s*/, "")
-          .replace(/^[-•]\s*/, "")
+          .replace(/^[-•*]\s*/, "")
           .trim()
       )
-      .filter((line) => line.length > 0);
+      .filter((line) => line.length > 0)
+      .slice(0, 5);
+
+    // ================= VALIDATE INSIGHTS =================
+
+    if (insights.length === 0) {
+      return res.status(502).json({
+        success: false,
+        message:
+          "Gemini did not return usable financial insights.",
+      });
+    }
 
     // ================= SEND RESPONSE =================
-    res.status(200).json({
+
+    return res.status(200).json({
       success: true,
 
       summary: {
@@ -103,22 +205,25 @@ Instructions:
         totalExpenses,
         remainingBalance,
         budget: budgetAmount,
-        savingsRate: Number(savingsRate),
+        savingsRate,
       },
 
       insights,
     });
-
   } catch (error) {
-    console.error("AI Controller Error:", error);
+    console.error(
+      "AI Controller Error:",
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to generate AI insights.",
-      error: error.message,
     });
   }
 };
+
+// ================= EXPORT =================
 
 module.exports = {
   getInsights,
